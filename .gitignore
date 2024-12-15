@@ -56,3 +56,5 @@ lerna-debug.log*
 # Misc
 *.local
 Thumbs.db
+
+backend/uploads
