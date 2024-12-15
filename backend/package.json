@@ -1,0 +1,27 @@
+{
+  "name": "date-app-backend",
+  "version": "1.0.0",
+  "description": "Dating App Backend API",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node -r dotenv/config src/database/seeders/index.js"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^8.3.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.1",
+    "sequelize": "^6.33.0",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
