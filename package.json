@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:setup": "mysql -u root --port=3306 < src/server/schema.sql",
+    "db:seed": "mysql -u root --port=3306 < src/server/seed.sql && node src/server/scripts/download-profile-photos.js && node src/server/scripts/download-background.js",
+    "db:destroy": "mysql -u root --port=3306 -e \"DROP DATABASE IF EXISTS dating_app;\""
   },
   "dependencies": {
     "react": "^18.2.0",

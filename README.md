@@ -41,6 +41,42 @@
 - Premium dönüşüm oranları
 - Eşleşme istatistikleri
 
+## Test Kullanıcıları
+
+### Admin Hesabı
+- **Email**: admin@dating.com
+- **Şifre**: admin123
+- **Admin Panel**: http://localhost:3000/admin
+
+### Test Kullanıcısı
+- **Email**: ayse@mail.com
+- **Şifre**: test123
+- **Profil**: 25 yaşında, İstanbul'da yaşayan bir kadın kullanıcı
+
+### Diğer Test Kullanıcıları
+Diğer test kullanıcılarının şifresi de "test123" olarak ayarlanmıştır:
+- mehmet@mail.com
+- zeynep@mail.com
+- can@mail.com
+- elif@mail.com
+- ahmet@mail.com
+- selin@mail.com
+- burak@mail.com
+- deniz@mail.com
+- mert@mail.com
+
+## Seed Data Oluşturma
+```bash
+# Veritabanını oluştur ve tabloları kur
+npm run db:setup
+
+# Test verilerini yükle
+npm run db:seed
+
+# Profil fotoğraflarını indir
+npm run photos:download
+```
+
 ## Kurulum
 1. Projeyi klonlayın: `git clone <repo-url>`
 2. Bağımlılıkları yükleyin: `npm install`
