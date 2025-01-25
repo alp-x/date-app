@@ -116,7 +116,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({ currentUser, match })
                 <small className={`text-xs ${
                   msg.senderId === currentUser.id ? "text-blue-100" : "text-gray-500"
                 }`}>
-                  {new Date(msg.timestamp).toLocaleTimeString()}
+                  {new Date(msg.createdAt).toLocaleTimeString()}
                 </small>
               </div>
             ))}

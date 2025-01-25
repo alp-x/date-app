@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '../services/api';
 import Link from 'next/link';
+import Image from 'next/image';
+import { auth } from '../services/api';
 
 const LoginPage = () => {
   const router = useRouter();
@@ -14,87 +15,102 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setLoading(true);
 
     try {
       const response = await auth.login(formData.email, formData.password);
       localStorage.setItem('token', response.token);
-      localStorage.setItem('userGender', response.user.gender);
+      localStorage.setItem('userId', response.userId.toString());
+      localStorage.setItem('isAdmin', response.isAdmin.toString());
+      localStorage.setItem('userGender', response.gender);
       router.push('/');
     } catch (err) {
-      setError('Giriş yapılırken bir hata oluştu');
+      setError('Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-6">Giriş Yap</h2>
-        
-        {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              E-posta
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="max-w-md w-full mx-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 animate-scale-in">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-2">Hoş Geldiniz</h2>
+            <p className="text-gray-600">
+              Hesabınıza giriş yapın ve eşleşmeleri keşfedin
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Şifre
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {error && (
+            <div className="bg-red-50 text-red-500 p-4 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                E-posta Adresi
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="ornek@mail.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Şifre
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full btn"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="loading-spinner h-5 w-5"></div>
+              ) : (
+                'Giriş Yap'
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600">
+              Henüz hesabınız yok mu?{' '}
+              <Link href="/register" className="text-blue-500 hover:text-blue-600">
+                Kayıt Ol
+              </Link>
+            </p>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-          </button>
-        </form>
-
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
-            Hesabın yok mu?{' '}
-            <Link href="/register" className="text-blue-500 hover:text-blue-600">
-              Kayıt Ol
-            </Link>
-          </p>
         </div>
       </div>
     </div>

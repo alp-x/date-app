@@ -1,168 +1,98 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { premium } from '../services/api';
+import React from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface SwipeLimitProps {
-  onSwipe: () => void;
-  onPremiumChange: (isPremium: boolean) => void;
+  onSwipe: () => boolean;
+  onPremiumChange: () => void;
 }
 
 const SwipeLimit: React.FC<SwipeLimitProps> = ({ onSwipe, onPremiumChange }) => {
-  const [swipesLeft, setSwipesLeft] = useState(20);
-  const [isPremium, setIsPremium] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [remainingSwipes, setRemainingSwipes] = React.useState(10);
+  const [isPremium, setIsPremium] = React.useState(false);
+  const [showPremiumPrompt, setShowPremiumPrompt] = React.useState(false);
 
-  useEffect(() => {
-    checkPremiumStatus();
+  React.useEffect(() => {
+    const premium = localStorage.getItem('isPremium') === 'true';
+    const dailySwipes = parseInt(localStorage.getItem('dailySwipes') || '0');
+    setIsPremium(premium);
+    setRemainingSwipes(10 - dailySwipes);
   }, []);
 
-  const checkPremiumStatus = async () => {
-    try {
-      setLoading(true);
-      const status = await premium.getStatus();
-      setIsPremium(status.isActive);
-      onPremiumChange(status.isActive);
-      setError(null);
-    } catch (err) {
-      setError('Premium durumu kontrol edilirken bir hata oluştu');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSwipe = () => {
-    if (isPremium || swipesLeft > 0) {
-      if (!isPremium) {
-        setSwipesLeft(prev => prev - 1);
-      }
-      onSwipe();
+    const canSwipe = onSwipe();
+    if (canSwipe) {
+      setRemainingSwipes(prev => prev - 1);
+    } else {
+      setShowPremiumPrompt(true);
     }
   };
 
-  const handlePremiumSubscribe = async () => {
-    try {
-      setLoading(true);
-      await premium.subscribe(1); // 1 aylık üyelik
-      await checkPremiumStatus();
-      setError(null);
-    } catch (err) {
-      setError('Premium üyelik işlemi sırasında bir hata oluştu');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handlePremiumUpgrade = () => {
+    onPremiumChange();
+    setIsPremium(true);
+    setShowPremiumPrompt(false);
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <h2 className="text-2xl font-bold mb-4">Kaydırma Limiti</h2>
-
-      {error && (
-        <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
-          <p>{error}</p>
+    <div className="card p-6 animate-fade-in">
+      <h3 className="text-xl font-bold mb-4">Günlük Swipe Limiti</h3>
+      
+      {isPremium ? (
+        <div className="text-center">
+          <div className="mb-4">
+            <span className="text-2xl font-bold text-yellow-500">∞</span>
+            <p className="text-sm text-gray-600">Sınırsız Swipe Hakkı</p>
+          </div>
+          <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-3 rounded-lg">
+            <p className="font-semibold">Premium Üye</p>
+            <p className="text-sm">Tüm özelliklere erişiminiz var</p>
+          </div>
         </div>
-      )}
+      ) : (
+        <div className="text-center">
+          <div className="mb-4">
+            <span className="text-3xl font-bold text-blue-500">{remainingSwipes}</span>
+            <p className="text-sm text-gray-600">Kalan Swipe Hakkı</p>
+          </div>
+          
+          {showPremiumPrompt && (
+            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4">
+              <p className="text-sm text-yellow-800 mb-2">
+                Günlük swipe limitinize ulaştınız!
+              </p>
+              <p className="text-xs text-yellow-600 mb-4">
+                Premium üyelik ile sınırsız swipe yapabilirsiniz.
+              </p>
+            </div>
+          )}
 
-      {!isPremium && (
-        <div className="mb-6">
-          <p className="text-lg font-medium">
-            Kalan kaydırma: <span className="text-blue-600">{swipesLeft}</span>
+          <button
+            onClick={handlePremiumUpgrade}
+            className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-4 py-2 rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all duration-200"
+          >
+            Premium&apos;a Geç
+          </button>
+          
+          <p className="text-xs text-gray-500 mt-2">
+            Her gün gece yarısı yenilenir
           </p>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-            <div
-              className="bg-blue-600 h-2.5 rounded-full"
-              style={{ width: `${(swipesLeft / 20) * 100}%` }}
-            ></div>
-          </div>
         </div>
       )}
 
-      <div className="space-y-4">
-        <button
-          onClick={handleSwipe}
-          disabled={!isPremium && swipesLeft === 0}
-          className={`w-full py-2 px-4 rounded-lg ${
-            !isPremium && swipesLeft === 0
-              ? 'bg-gray-300 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-          }`}
-        >
-          {isPremium ? 'Sınırsız Kaydır' : 'Kaydır'}
-        </button>
-
-        {!isPremium && (
-          <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-6 rounded-lg text-white">
-            <h3 className="text-xl font-bold mb-2">Premium&apos;a Geç</h3>
-            <ul className="space-y-2 mb-4">
-              <li className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                Sınırsız kaydırma hakkı
-              </li>
-              <li className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                Görüldü bilgisi
-              </li>
-              <li className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                Öne çıkan profil
-              </li>
-            </ul>
-            <button
-              onClick={handlePremiumSubscribe}
-              className="w-full bg-white text-yellow-600 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              Premium&apos;a Geç
-            </button>
-          </div>
-        )}
-      </div>
+      {!isPremium && remainingSwipes > 0 && (
+        <div className="mt-4 text-center">
+          <button
+            onClick={handleSwipe}
+            className="btn-secondary w-full"
+          >
+            Swipe Yap
+          </button>
+        </div>
+      )}
     </div>
   );
 };

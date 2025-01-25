@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { FilterOptions } from '../types';
+import { matching } from '../services/api';
 
 interface MatchSystemProps {
   filters: FilterOptions;
@@ -13,6 +14,10 @@ const MatchSystem: React.FC<MatchSystemProps> = ({ filters }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [offsetX, setOffsetX] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadUsers();
@@ -21,21 +26,8 @@ const MatchSystem: React.FC<MatchSystemProps> = ({ filters }) => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      // API çağrısı burada yapılacak
-      const sampleUsers = [
-        {
-          id: 1,
-          name: "Ayşe",
-          age: 25,
-          gender: "Kadın",
-          photo: "/images/users/ayse.jpg",
-          interests: ["Müzik", "Seyahat", "Spor"],
-          lookingFor: ["İlişki", "Arkadaşlık"],
-          location: "İstanbul"
-        },
-        // Diğer örnek kullanıcılar...
-      ];
-      setUsers(sampleUsers);
+      const response = await matching.getUsers(filters);
+      setUsers(response);
       setError(null);
     } catch (err) {
       setError('Kullanıcılar yüklenirken bir hata oluştu');
@@ -45,30 +37,39 @@ const MatchSystem: React.FC<MatchSystemProps> = ({ filters }) => {
     }
   };
 
-  const handleLike = async () => {
-    try {
-      const currentUser = users[currentIndex];
-      if (!currentUser) return;
-
-      // API çağrısı burada yapılacak
-      setCurrentIndex(prev => prev + 1);
-    } catch (err) {
-      setError('Beğenme işlemi sırasında bir hata oluştu');
-      console.error(err);
-    }
+  const handleSwipeStart = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    setStartX(clientX - offsetX);
   };
 
-  const handleDislike = async () => {
-    try {
-      const currentUser = users[currentIndex];
-      if (!currentUser) return;
+  const handleSwipeMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const newOffsetX = clientX - startX;
+    setOffsetX(newOffsetX);
+  };
 
-      // API çağrısı burada yapılacak
-      setCurrentIndex(prev => prev + 1);
-    } catch (err) {
-      setError('Reddetme işlemi sırasında bir hata oluştu');
-      console.error(err);
+  const handleSwipeEnd = async () => {
+    setIsDragging(false);
+    if (Math.abs(offsetX) > 100) {
+      try {
+        const currentUser = users[currentIndex];
+        if (!currentUser) return;
+
+        if (offsetX > 0) {
+          await matching.like(currentUser.id);
+        } else {
+          await matching.dislike(currentUser.id);
+        }
+        setCurrentIndex(prev => prev + 1);
+      } catch (err) {
+        setError('İşlem sırasında bir hata oluştu');
+        console.error(err);
+      }
     }
+    setOffsetX(0);
   };
 
   if (loading) {
@@ -109,10 +110,26 @@ const MatchSystem: React.FC<MatchSystemProps> = ({ filters }) => {
     );
   }
 
+  const cardStyle = {
+    transform: `translateX(${offsetX}px) rotate(${offsetX * 0.1}deg)`,
+    transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+  };
+
   return (
     <div className="card animate-scale-in">
       <div className="p-8">
-        <div className="mb-6 relative h-96">
+        <div 
+          ref={cardRef}
+          className="mb-6 relative h-96 cursor-grab active:cursor-grabbing"
+          style={cardStyle}
+          onMouseDown={handleSwipeStart}
+          onMouseMove={handleSwipeMove}
+          onMouseUp={handleSwipeEnd}
+          onMouseLeave={handleSwipeEnd}
+          onTouchStart={handleSwipeStart}
+          onTouchMove={handleSwipeMove}
+          onTouchEnd={handleSwipeEnd}
+        >
           <Image
             className="object-cover rounded-lg"
             src={currentUser.photo}
@@ -120,57 +137,27 @@ const MatchSystem: React.FC<MatchSystemProps> = ({ filters }) => {
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
-        </div>
-        <div className="text-center">
-          <h3 className="text-3xl font-bold mb-2">
-            {currentUser.name}, {currentUser.age}
-          </h3>
-          <p className="text-gray-600 mb-4">{currentUser.location}</p>
-          <div className="mb-6">
-            <h4 className="font-semibold mb-3">İlgi Alanları</h4>
-            <div className="flex flex-wrap gap-2 justify-center">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-50 rounded-lg"></div>
+          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+            <h3 className="text-3xl font-bold mb-2">
+              {currentUser.name}, {currentUser.age}
+            </h3>
+            <p className="mb-4">
+              {currentUser.latitude && currentUser.longitude ? 
+                `${currentUser.latitude.toFixed(4)}, ${currentUser.longitude.toFixed(4)}` : 
+                'Konum belirtilmemiş'
+              }
+            </p>
+            <div className="flex flex-wrap gap-2">
               {currentUser.interests.map((interest: string, index: number) => (
                 <span
                   key={index}
-                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                  className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm"
                 >
                   {interest}
                 </span>
               ))}
             </div>
-          </div>
-          <div className="mb-6">
-            <h4 className="font-semibold mb-3">Aradığı</h4>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {currentUser.lookingFor.map((item: string, index: number) => (
-                <span
-                  key={index}
-                  className="bg-pink-100 text-pink-800 px-3 py-1 rounded-full text-sm"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={handleDislike}
-              className="btn-secondary flex items-center gap-2 px-8"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Reddet
-            </button>
-            <button
-              onClick={handleLike}
-              className="btn flex items-center gap-2 px-8"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              Beğen
-            </button>
           </div>
         </div>
       </div>

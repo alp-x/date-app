@@ -44,14 +44,14 @@
 ## Test Kullanıcıları
 
 ### Admin Hesabı
-- **Email**: admin@dating.com
+- **E-posta**: admin@dating.com
 - **Şifre**: admin123
 - **Admin Panel**: http://localhost:3000/admin
 
 ### Test Kullanıcısı
-- **Email**: ayse@mail.com
+- **E-posta**: test@mail.com
 - **Şifre**: test123
-- **Profil**: 25 yaşında, İstanbul'da yaşayan bir kadın kullanıcı
+- **Profil**: 25 yaşında, İstanbul'da yaşayan bir kullanıcı
 
 ### Diğer Test Kullanıcıları
 Diğer test kullanıcılarının şifresi de "test123" olarak ayarlanmıştır:

@@ -2,32 +2,37 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import MatchSystem from './components/MatchSystem';
 import FilterOptions from './components/FilterOptions';
 import SwipeLimit from './components/SwipeLimit';
 import { FilterOptions as FilterOptionsType } from './types';
 
 export default function Home() {
-  const [isPremium, setIsPremium] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userGender, setUserGender] = useState<'Erkek' | 'Kadın' | null>(null);
+  const [userGender, setUserGender] = useState<string | undefined>();
+  const [isPremium, setIsPremium] = useState(false);
+  const [swipeCount, setSwipeCount] = useState(0);
   const [filters, setFilters] = useState<FilterOptionsType>({
     gender: undefined,
     minAge: 18,
-    maxAge: 99,
-    distance: 100,
-    lookingFor: []
+    maxAge: 50,
+    lookingFor: [],
+    distance: 50
   });
 
   useEffect(() => {
-    // Kullanıcı giriş durumunu kontrol et
     const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
-    
-    // Kullanıcı cinsiyetini al
     const gender = localStorage.getItem('userGender');
-    if (gender === 'Erkek' || gender === 'Kadın') {
-      setUserGender(gender);
+    const premium = localStorage.getItem('isPremium') === 'true';
+    const dailySwipes = parseInt(localStorage.getItem('dailySwipes') || '0');
+    
+    setIsLoggedIn(!!token);
+    setUserGender(gender || undefined);
+    setIsPremium(premium);
+    setSwipeCount(dailySwipes);
+
+    if (gender) {
       setFilters(prev => ({
         ...prev,
         gender: gender === 'Erkek' ? 'Kadın' : 'Erkek'
@@ -40,31 +45,109 @@ export default function Home() {
   };
 
   const handleSwipe = () => {
-    // Kaydırma işlemi gerçekleştiğinde yapılacak işlemler
+    if (isPremium || swipeCount < 10) {
+      setSwipeCount(prev => {
+        const newCount = prev + 1;
+        localStorage.setItem('dailySwipes', newCount.toString());
+        return newCount;
+      });
+      return true; // Swipe'a izin ver
+    }
+    return false; // Swipe limitine ulaşıldı
   };
 
-  const handlePremiumChange = (status: boolean) => {
-    setIsPremium(status);
+  const handlePremiumChange = () => {
+    setIsPremium(true);
+    localStorage.setItem('isPremium', 'true');
+    // Premium satın alma başarılı olduğunda çağrılacak
   };
+
+  // Reset daily swipes at midnight
+  useEffect(() => {
+    const now = new Date();
+    const night = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1, // tomorrow
+      0, 0, 0 // midnight
+    );
+    const msToMidnight = night.getTime() - now.getTime();
+
+    const timer = setTimeout(() => {
+      setSwipeCount(0);
+      localStorage.setItem('dailySwipes', '0');
+    }, msToMidnight);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-        <div className="text-center max-w-3xl mx-auto px-4">
-          <h1 className="text-5xl font-bold mb-6">
-            Aşkı Keşfetmenin Modern Yolu
+      <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center overflow-hidden">
+        {/* Animasyonlu Arka Plan */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-500 to-pink-500 opacity-80"></div>
+          <Image
+            src="/images/hero-bg.jpg"
+            alt="Dating App"
+            fill
+            className="object-cover mix-blend-overlay"
+            priority
+          />
+        </div>
+
+        {/* Animasyonlu Şekiller */}
+        <div className="absolute inset-0 -z-5">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-blob"></div>
+          <div className="absolute top-40 right-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-40 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-blob animation-delay-4000"></div>
+        </div>
+
+        <div className="relative text-center px-4 py-16 backdrop-blur-sm rounded-3xl max-w-4xl mx-auto">
+          <h1 className="text-6xl font-bold mb-8 text-gray-900 drop-shadow-lg animate-fade-in">
+            Aşkı Keşfetmenin En İyi Yolu
           </h1>
-          <p className="text-xl mb-12">
-            Hayalinizdeki kişiyi bulmanın en kolay ve güvenli yolu.
-            Hemen ücretsiz üye olun ve eşleşmeye başlayın.
+          
+          <p className="text-2xl mb-12 text-gray-800 max-w-2xl mx-auto leading-relaxed animate-fade-in animation-delay-200 drop-shadow">
+            Hayalinizdeki eşleşmeyi bulun. Modern, güvenli ve eğlenceli bir deneyimle yeni insanlarla tanışın.
           </p>
-          <div className="space-x-4">
-            <a href="/login" className="btn bg-white text-blue-600 hover:bg-gray-100">
+
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center animate-fade-in animation-delay-400">
+            <Link 
+              href="/register" 
+              className="btn-lg group relative overflow-hidden bg-gray-900 text-white hover:text-white px-8 py-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <span className="relative z-10">Hemen Başla</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            </Link>
+            
+            <Link 
+              href="/login" 
+              className="btn-lg-secondary bg-white/90 text-gray-900 border-2 border-gray-900/10 hover:bg-white px-8 py-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
               Giriş Yap
-            </a>
-            <a href="/register" className="btn bg-transparent border-2 hover:bg-white/10">
-              Kayıt Ol
-            </a>
+            </Link>
+          </div>
+
+          {/* Özellikler */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 text-gray-900 animate-fade-in animation-delay-600">
+            <div className="bg-white/90 p-6 rounded-2xl border border-gray-200 hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl">
+              <div className="text-3xl mb-4">🔒</div>
+              <h3 className="text-xl font-semibold mb-2">Güvenli Eşleşme</h3>
+              <p className="text-gray-700">Doğrulanmış profiller ve güvenli mesajlaşma sistemi</p>
+            </div>
+            
+            <div className="bg-white/90 p-6 rounded-2xl border border-gray-200 hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl">
+              <div className="text-3xl mb-4">💝</div>
+              <h3 className="text-xl font-semibold mb-2">Akıllı Eşleştirme</h3>
+              <p className="text-gray-700">İlgi alanlarınıza göre en uygun eşleşmeler</p>
+            </div>
+            
+            <div className="bg-white/90 p-6 rounded-2xl border border-gray-200 hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl">
+              <div className="text-3xl mb-4">✨</div>
+              <h3 className="text-xl font-semibold mb-2">Premium Özellikler</h3>
+              <p className="text-gray-700">Sınırsız eşleşme ve özel ayrıcalıklar</p>
+            </div>
           </div>
         </div>
       </div>
@@ -72,60 +155,23 @@ export default function Home() {
   }
 
   return (
-    <div className="animate-fade-in">
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {/* Sol Sidebar - Kaydırma Limiti */}
-          <div className="md:col-span-3">
-            <SwipeLimit onSwipe={handleSwipe} onPremiumChange={handlePremiumChange} />
-          </div>
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <div className="md:col-span-3">
+        <SwipeLimit 
+          onSwipe={handleSwipe}
+          onPremiumChange={handlePremiumChange}
+        />
+      </div>
 
-          {/* Ana İçerik - Eşleşme Sistemi */}
-          <div className="md:col-span-6">
-            <MatchSystem filters={filters} />
-          </div>
+      <div className="md:col-span-6">
+        <MatchSystem filters={filters} />
+      </div>
 
-          {/* Sağ Sidebar - Filtreler */}
-          <div className="md:col-span-3">
-            <FilterOptions onFilterChange={handleFilterChange} userGender={userGender} />
-          </div>
-        </div>
-
-        {/* Premium Özellikleri */}
-        <div className="mt-8 max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-lg overflow-hidden">
-            <div className="p-6 sm:p-8">
-              <h2 className="text-2xl font-bold text-white mb-4">
-                Premium Avantajları
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="flex items-center text-white">
-                  <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Sınırsız Kaydırma</span>
-                </div>
-                <div className="flex items-center text-white">
-                  <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  <span>Görüldü Bilgisi</span>
-                </div>
-                <div className="flex items-center text-white">
-                  <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-                  <span>Öne Çıkan Profil</span>
-                </div>
-              </div>
-              <button className="mt-6 w-full sm:w-auto bg-white text-yellow-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Premium&apos;a Geç
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="md:col-span-3">
+        <FilterOptions
+          onFilterChange={handleFilterChange}
+          userGender={userGender}
+        />
       </div>
     </div>
   );

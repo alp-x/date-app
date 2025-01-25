@@ -3,7 +3,7 @@ export interface User {
   email: string;
   name: string;
   age: number;
-  gender: 'Erkek' | 'Kadın';
+  gender: string;
   photo: string;
   bio?: string;
   interests: string[];
@@ -11,8 +11,8 @@ export interface User {
   latitude?: number;
   longitude?: number;
   isAdmin?: boolean;
-  isPremium?: boolean;
-  lastActive?: Date;
+  isPremium: boolean;
+  lastActive: Date;
 }
 
 export interface Message {
@@ -20,15 +20,15 @@ export interface Message {
   senderId: number;
   receiverId: number;
   content: string;
-  timestamp: Date;
+  createdAt: Date;
   isRead: boolean;
 }
 
 export interface Match {
   id: number;
-  user1Id: number;
-  user2Id: number;
-  timestamp: Date;
+  userId: number;
+  matchedUserId: number;
+  createdAt: Date;
   user?: User;
 }
 
@@ -52,9 +52,8 @@ export interface AdminStats {
 }
 
 export interface SwipeLimit {
-  userId: number;
-  dailySwipes: number;
-  lastReset: Date;
+  remainingSwipes: number;
+  resetTime: Date;
 }
 
 export interface Payment {
@@ -67,10 +66,10 @@ export interface Payment {
 }
 
 export interface FilterOptions {
-  gender?: 'Erkek' | 'Kadın';
-  minAge?: number;
-  maxAge?: number;
-  lookingFor?: string[];
+  gender?: string;
+  minAge: number;
+  maxAge: number;
+  lookingFor: string[];
   distance?: number;
 }
 
@@ -88,4 +87,15 @@ export interface UserRegistration {
 export interface LoginCredentials {
   email: string;
   password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  userId: number;
+  isAdmin: boolean;
+  gender?: string;
+  user?: {
+    name: string;
+    photo?: string;
+  };
 } 

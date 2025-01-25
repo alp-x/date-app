@@ -1,167 +1,175 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FilterOptions as FilterOptionsType } from '../types';
 
 interface FilterOptionsProps {
   onFilterChange: (filters: FilterOptionsType) => void;
-  userGender: 'Erkek' | 'Kadın' | null;
+  userGender?: string;
 }
 
 const FilterOptions: React.FC<FilterOptionsProps> = ({ onFilterChange, userGender }) => {
   const [filters, setFilters] = useState<FilterOptionsType>({
     gender: userGender === 'Erkek' ? 'Kadın' : 'Erkek',
     minAge: 18,
-    maxAge: 99,
-    distance: 100,
-    lookingFor: []
+    maxAge: 50,
+    lookingFor: [],
+    distance: 50
   });
 
-  const handleChange = (
-    name: keyof FilterOptionsType,
-    value: string | number | string[] | null
-  ) => {
-    const updatedFilters = {
-      ...filters,
-      [name]: value === '' ? undefined : value
-    };
-    setFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+  const [showAllDistance, setShowAllDistance] = useState(false);
+
+  useEffect(() => {
+    onFilterChange(filters);
+  }, [filters, onFilterChange]);
+
+  const handleChange = (field: keyof FilterOptionsType, value: FilterOptionsType[keyof FilterOptionsType]) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleAgeChange = (field: 'minAge' | 'maxAge', value: string) => {
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 18 && numValue <= 100) {
+      handleChange(field, numValue);
+    }
+  };
+
+  const handleGenderChange = (value: string) => {
+    handleChange('gender', value || undefined);
+  };
+
+  const handleDistanceChange = (value: string) => {
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 1 && numValue <= 100) {
+      handleChange('distance', numValue);
+    }
   };
 
   const handleLookingForChange = (value: string) => {
-    const lookingFor = filters.lookingFor || [];
-    const updatedLookingFor = lookingFor.includes(value)
-      ? lookingFor.filter(item => item !== value)
-      : [...lookingFor, value];
-
-    handleChange('lookingFor', updatedLookingFor);
+    setFilters(prev => ({
+      ...prev,
+      lookingFor: prev.lookingFor.includes(value)
+        ? prev.lookingFor.filter(item => item !== value)
+        : [...prev.lookingFor, value]
+    }));
   };
 
   const lookingForOptions = [
-    "Uzun Süreli İlişki",
-    "Kısa Süreli İlişki",
-    "Yeni Arkadaşlar",
-    "Henüz Karar Veremedim"
+    'Uzun Süreli İlişki',
+    'Kısa Süreli İlişki',
+    'Arkadaşlık',
+    'Yeni İnsanlar Tanıma'
   ];
 
+  const handleDistanceToggle = () => {
+    setShowAllDistance(prev => !prev);
+    setFilters(prev => ({
+      ...prev,
+      distance: showAllDistance ? 50 : undefined
+    }));
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <h2 className="text-2xl font-bold mb-6">Filtreleme</h2>
+    <div className="card p-6 animate-fade-in">
+      <h3 className="text-xl font-bold mb-6">Filtreler</h3>
+      
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Cinsiyet</label>
+        <select
+          value={filters.gender || ''}
+          onChange={(e) => handleGenderChange(e.target.value)}
+          className="w-full p-2 border rounded-lg"
+        >
+          <option value="">Seçiniz</option>
+          <option value="Erkek">Erkek</option>
+          <option value="Kadın">Kadın</option>
+        </select>
+      </div>
 
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Cinsiyet
-          </label>
-          <select
-            value={filters.gender || ''}
-            onChange={(e) => handleChange('gender', e.target.value || null)}
-            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={!!userGender}
-          >
-            <option value="">Hepsi</option>
-            <option value="Erkek">Erkek</option>
-            <option value="Kadın">Kadın</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Yaş Aralığı
-          </label>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <input
-                type="number"
-                value={filters.minAge}
-                onChange={(e) => handleChange('minAge', parseInt(e.target.value) || 18)}
-                min="18"
-                max="99"
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Min"
-              />
-            </div>
-            <div className="flex-1">
-              <input
-                type="number"
-                value={filters.maxAge}
-                onChange={(e) => handleChange('maxAge', parseInt(e.target.value) || 99)}
-                min="18"
-                max="99"
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Max"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Ne Arıyorsun?
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {lookingForOptions.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => handleLookingForChange(option)}
-                className={`px-4 py-2 rounded-full text-sm ${
-                  filters.lookingFor?.includes(option)
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Mesafe
-          </label>
-          <div className="space-y-4">
-            <input
-              type="range"
-              min="1"
-              max="100"
-              value={filters.distance}
-              onChange={(e) => handleChange('distance', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            />
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>{filters.distance} KM</span>
-              <button
-                onClick={() => handleChange('distance', 0)}
-                className="text-blue-500 hover:text-blue-600"
-              >
-                Tüm Dünya
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            onClick={() => {
-              const defaultFilters: FilterOptionsType = {
-                gender: userGender === 'Erkek' ? 'Kadın' : 'Erkek',
-                minAge: 18,
-                maxAge: 99,
-                distance: 100,
-                lookingFor: []
-              };
-              setFilters(defaultFilters);
-              onFilterChange(defaultFilters);
-            }}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-          >
-            Filtreleri Sıfırla
-          </button>
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Yaş Aralığı</label>
+        <div className="flex gap-4">
+          <input
+            type="number"
+            min="18"
+            max="100"
+            value={filters.minAge.toString()}
+            onChange={(e) => handleAgeChange('minAge', e.target.value)}
+            className="w-1/2 p-2 border rounded-lg"
+            placeholder="Min"
+          />
+          <input
+            type="number"
+            min="18"
+            max="100"
+            value={filters.maxAge.toString()}
+            onChange={(e) => handleAgeChange('maxAge', e.target.value)}
+            className="w-1/2 p-2 border rounded-lg"
+            placeholder="Max"
+          />
         </div>
       </div>
+
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Ne Arıyorsun?</label>
+        <div className="flex flex-wrap gap-2">
+          {lookingForOptions.map((option) => (
+            <button
+              key={option}
+              onClick={() => handleLookingForChange(option)}
+              className={`px-3 py-1 rounded-full text-sm ${
+                filters.lookingFor.includes(option)
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Mesafe (KM)</label>
+        <div className="flex items-center gap-4">
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value={filters.distance || 50}
+            onChange={(e) => handleDistanceChange(e.target.value)}
+            className="w-full"
+            disabled={showAllDistance}
+          />
+          <span className="text-sm font-medium w-12">
+            {showAllDistance ? '∞' : filters.distance}
+          </span>
+        </div>
+        <button
+          onClick={handleDistanceToggle}
+          className={`mt-2 text-sm ${
+            showAllDistance ? 'text-blue-500' : 'text-gray-500'
+          }`}
+        >
+          {showAllDistance ? 'Mesafe Sınırı Belirle' : 'Tüm Dünya'}
+        </button>
+      </div>
+
+      <button
+        onClick={() => setFilters({
+          gender: userGender === 'Erkek' ? 'Kadın' : 'Erkek',
+          minAge: 18,
+          maxAge: 50,
+          lookingFor: [],
+          distance: 50
+        })}
+        className="w-full btn-secondary"
+      >
+        Filtreleri Sıfırla
+      </button>
     </div>
   );
 };
